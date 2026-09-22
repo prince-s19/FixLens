@@ -32,41 +32,30 @@ FixLens is deliberately narrow enough to be safe and polished: it starts with co
 | Capability | Status in this repository |
 | --- | --- |
 | Responsive web product and dashboard | Implemented |
-| Camera-compatible photo upload and damage workflow | Implemented |
-| Structured repair templates and animated repair video generation | Implemented |
-| English and Tamil narration assets/API path | Implemented |
-| Deterministic dangerous-repair hard lock and escalation | Implemented |
-| Optional Gemini multimodal vision adapter | Implemented when `GEMINI_API_KEY` is configured |
-| Local heuristic edge fallback | Implemented for development/demo fallback |
-| Native iQOO app, ML Kit, AR overlays, and Qualcomm NPU delegate | Roadmap; described as planned, not complete |
-
-The product boundary is intentional: the web MVP proves the product and safety workflow today, while the iQOO NPU plan shows how the same stable detection contract becomes an offline, private device experience.
-
-## Product Overview
-flowchart TD
-    Users[Users] --> Sessions[Sessions]
-    Users --> Repairs[Repair requests]
-    Users --> Guides[Saved repair guides]
-    Users --> Technicians[Technicians]
-    Users --> Escalations[Safety escalations]
-    Users --> Activity[Activity log]
-    Repairs --> Guides
-    Repairs --> Escalations
-    Technicians --> Escalations
-    Repairs --> Activity
-    Repairs --> RepairData[Category, damage box, steps, safety, status]
-    Guides --> GuideData[Tools, materials, notes, bookmarks]
-    Escalations --> EscalationData[Reason, urgency, technician, status]
-	API --> Storage[Upload and generated media storage]
-	API --> DB[Drizzle data layer]
-	DB --> PGlite[PGlite local database]
-	DB --> Postgres[PostgreSQL deployment]
-	Vision --> Edge[Local edge fallback: pixel variance and keyword rules]
-	Vision --> Gemini[Optional Gemini 1.5 Flash vision API]
-	API --> TTS[Optional English/Tamil TTS route]
-	API --> Video[Canvas-based repair video generator]
-	API --> Escalation[Technician escalation workflow]
+    Start([User opens FixLens]) --> Login{Authenticated?}
+    Login -- No --> Register[Register or log in]
+    Login -- Yes --> Capture[Capture or upload before photo]
+    Register --> Capture
+    Capture --> Notes[Add object or damage notes]
+    Notes --> Detect[POST /api/ai/detect]
+    Detect --> Hazard{Danger detected?}
+    Hazard -- Yes --> Lock[Hard safety lock]
+    Lock --> Escalate[Create escalation]
+    Escalate --> Tech[Select or dispatch technician]
+    Hazard -- No --> Classify[Classify approved MVP category]
+    Classify --> Guide[Build repair steps, tools, costs, and safety notes]
+    Guide --> Video[Generate optional repair video]
+    Video --> TTS[Generate English or Tamil narration]
+    TTS --> Execute[User follows guided repair]
+    Execute --> After[Capture after photo]
+    After --> Complete[Complete repair and write activity log]
+    Complete --> History[Repair history and saved guide]
 ```
+
+### Safety and repair rules
+
+- Every permitted template carries difficulty, severity, safety level, safety notes, required tools, materials, estimated time, and repair steps.
+- The system can escalate to a technician with urgency, reason, status, and optional technician assignment.
 
 ### Architectural layers
 
@@ -112,14 +101,14 @@ The vision adapter normalizes detection into:
 
 ```ts
 {
-	category: string;
-	objectLabel: string;
-	damageSummary: string;
-	damageBox: { x: number; y: number; w: number; h: number };
-	confidenceScore: number;
-	isDangerous: boolean;
-	dangerCategory: string | null;
-	isDiySafe: boolean;
+  category: string;
+  objectLabel: string;
+  damageSummary: string;
+  damageBox: { x: number; y: number; w: number; h: number };
+  confidenceScore: number;
+  isDangerous: boolean;
+  dangerCategory: string | null;
+  isDiySafe: boolean;
 }
 ```
 
