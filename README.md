@@ -20,60 +20,287 @@ This repository contains the current web MVP and its server-side API. The iQOO c
 
 FixLens is deliberately narrow enough to be safe and polished: it starts with common furniture and household repairs, demonstrates the complete journey from raw damage to guided action, and refuses dangerous work. The project is not just an AI chatbot describing repairs. It connects camera input, visual detection, structured repair knowledge, animated video generation, English/Tamil guidance, a safety hard-lock, technician escalation, and a persistent repair record.
 
-### Product capabilities and evidence
+# FixLens — Product Capabilities & Technical Architecture
 
-| Product area | Focus | FixLens evidence | Product experience |
-| --- | ---: | --- | --- |
-| End-to-end product | Scan -> detect -> guide -> proof flow; focused furniture MVP; safety states; history and saved guides | A user captures an object, inspects the result, follows steps, and saves the outcome |
-| Real-world impact | Phone camera becomes a repair-specific assistant instead of another generic search result | A household gets specific guidance while unsafe work is refused |
-| Phone experience | Camera/photo capture, local edge contract, English/Tamil voice assets, damage box, generated repair video | The scan, diagnosis, localized narration, and repair animation form one continuous phone flow |
-| Engineering depth | Layered AI fallback, typed domain model, deterministic safety gate, Drizzle schema, PGlite/Postgres, sessions, media pipeline, API surface | The product has explicit states, persistence, failure behavior, and a working full-stack path |
-| Phone-to-laptop continuity | Responsive dashboard, shared REST handlers, phone upload, local mode, repair history | The phone starts the repair request while the laptop dashboard reviews, manages, escalates, and records it through the same API |
-| Product walkthrough | Named demo object, visible safety interruption, before/after proof, and a concise narrative | The workflow can be understood quickly without relying on abstract claims |
+> **Scan. See the problem. Repair safely.**
 
-### Claims and implementation status
+FixLens transforms an **iQOO smartphone** into a visual AI repair assistant that helps users safely repair everyday household furniture using computer vision, guided animations, bilingual voice assistance, and an intelligent safety engine.
 
-| Capability | Status in this repository |
-| --- | --- |
-| Responsive web product and dashboard | Implemented |
-    Start([User opens FixLens]) --> Login{Authenticated?}
-    Login -- No --> Register[Register or log in]
-    Login -- Yes --> Capture[Capture or upload before photo]
-    Register --> Capture
-    Capture --> Notes[Add object or damage notes]
-    Notes --> Detect[POST /api/ai/detect]
-    Detect --> Hazard{Danger detected?}
-    Hazard -- Yes --> Lock[Hard safety lock]
-    Lock --> Escalate[Create escalation]
-    Escalate --> Tech[Select or dispatch technician]
-    Hazard -- No --> Classify[Classify approved MVP category]
-    Classify --> Guide[Build repair steps, tools, costs, and safety notes]
-    Guide --> Video[Generate optional repair video]
-    Video --> TTS[Generate English or Tamil narration]
-    TTS --> Execute[User follows guided repair]
-    Execute --> After[Capture after photo]
-    After --> Complete[Complete repair and write activity log]
-    Complete --> History[Repair history and saved guide]
+---
+
+## Product Overview
+
+FixLens is a **phone-first AI repair platform** designed for quick DIY furniture repairs. Instead of watching generic repair videos or calling a technician for minor issues, users simply scan the damaged object and receive a personalized, interactive repair experience.
+
+### Core Value Proposition
+
+- Scan damaged furniture using the phone camera.
+- AI detects the damaged area on-device.
+- Interactive repair guide with visual overlays and animations.
+- Safety engine prevents dangerous DIY repairs.
+- Repair history with before/after proof.
+
+---
+
+## Product Capabilities
+
+| Product Area | Focus | FixLens Implementation | User Experience |
+|---------------|-------|------------------------|-----------------|
+| **End-to-End Product Flow** | Complete repair lifecycle | Scan → Detect → Guide → Repair → Proof workflow with safety checkpoints and history. | Users complete an entire repair journey from a single photo to a saved repair log. |
+| **Real-World Impact** | Affordable DIY assistance | Camera becomes a repair-specific AI assistant instead of generic search or YouTube videos. | Saves technician visits for low-risk repairs while preventing unsafe repairs. |
+| **Phone-First Experience** | Native smartphone interaction | Camera capture, object detection, AR damage highlighting, English/Tamil narration, generated repair animations. | Continuous mobile experience optimized for iQOO devices. |
+| **Engineering Depth** | Reliable AI architecture | AI vision with deterministic fallback, typed domain models, safety engine, Drizzle ORM, API routes, and media pipeline. | Explicit repair states, persistence, recovery behavior, and scalable architecture. |
+| **Phone-to-Laptop Continuity** | Multi-device workflow | Shared REST APIs, responsive dashboard, uploads, repair history, technician escalation. | Begin repairs on phone and continue reviewing history or escalations on desktop. |
+| **Guided Product Walkthrough** | Demo-friendly storytelling | Named repair scenarios, safety interruption flow, before/after validation, repair evidence. | Clear live demonstration for hackathons and product presentations. |
+
+---
+
+## End-to-End User Journey
+
+```text
+User Opens FixLens
+        │
+        ▼
+ Login / Register
+        │
+        ▼
+ Capture or Upload Before Photo
+        │
+        ▼
+ Add Damage Notes (Optional)
+        │
+        ▼
+ AI Damage Detection
+        │
+        ▼
+ Safety Decision Engine
+        │
+   ┌────┴─────┐
+   │          │
+Unsafe      Safe
+   │          │
+   ▼          ▼
+Technician   Repair Classification
+Escalation       │
+                 ▼
+       Generate Repair Guide
+                 │
+                 ▼
+    Repair Video + AR Overlay
+                 │
+                 ▼
+   English / Tamil Voice Guide
+                 │
+                 ▼
+      Perform Repair Steps
+                 │
+                 ▼
+      Capture After Photo
+                 │
+                 ▼
+     Save Repair Proof & History
 ```
 
-### Safety and repair rules
+---
 
-- Every permitted template carries difficulty, severity, safety level, safety notes, required tools, materials, estimated time, and repair steps.
-- The system can escalate to a technician with urgency, reason, status, and optional technician assignment.
+## Safety Engine
 
-### Architectural layers
+Safety is the core differentiator of FixLens. Every repair request passes through a deterministic safety engine before repair instructions are shown.
 
-| Layer | Responsibility | Current implementation |
-| --- | --- | --- |
-| Presentation | Landing page, auth, dashboard, repair wizard, guides, history, settings, technicians, escalations | Next.js App Router and React client components |
-| Transport | Request parsing, route handlers, response shaping, auth checks | `src/app/api/**/route.ts` and `src/lib/api-utils.ts` |
-| Validation | Request and domain input validation | Zod schemas in `src/lib/validation.ts` |
-| Domain | Allowed categories, dangerous categories, templates, steps, costs, tools, safety notes, narration | `src/lib/repairKnowledge.ts` |
-| AI orchestration | Optional cloud vision followed by deterministic local fallback | `src/lib/aiVision.ts` |
-| Persistence | Users, sessions, repairs, guides, technicians, escalations, activity log | Drizzle ORM with PGlite or PostgreSQL |
-| Media | Uploads, generated repair video, English/Tamil audio | `src/app/api/upload`, `src/lib/canvas-video-generator.ts`, `public/audio/` |
-| Security | Cookie session, password hashing, protected routes, secret isolation | `src/lib/auth.ts`, `src/middleware.ts`, `.env` |
+### Repair Decision States
 
+| Safety State | System Behavior |
+|--------------|-----------------|
+| **Low Risk** | Interactive repair guide is enabled immediately. |
+| **Medium Risk** | Repair allowed with additional warnings, required tools, and safety notes. |
+| **High Risk** | DIY repair is blocked and technician escalation is recommended. |
+| **Critical** | Repair session is locked and emergency guidance is shown instead of repair steps. |
+
+### Repair Template Includes
+
+- Difficulty level
+- Severity score
+- Safety level
+- Safety warnings
+- Required tools
+- Required materials
+- Estimated repair time
+- Interactive repair steps
+- Voice narration assets
+- Cost estimation
+
+---
+
+### Automatically Escalated Categories
+
+- Electrical appliances
+- Structural wall damage
+- Gas pipelines
+- Water leakage
+- Broken tempered glass
+- Heavy furniture collapse
+
+These repair requests are automatically escalated to a technician.
+
+---
+
+## AI Pipeline
+
+### AI Detection Workflow
+
+```text
+Camera Image
+      │
+      ▼
+Image Preprocessing
+      │
+      ▼
+AI Vision Detection
+      │
+      ▼
+Damage Classification
+      │
+      ▼
+Confidence Scoring
+      │
+      ▼
+Safety Decision Engine
+      │
+      ▼
+Personalized Repair Guide
+```
+
+### AI Responsibilities
+
+| AI Module | Purpose |
+|-----------|---------|
+| Object Detection | Detect furniture category. |
+| Damage Localization | Highlight damaged area with bounding boxes. |
+| Damage Classification | Identify loose screws, cracks, hinges, wobble, and similar issues. |
+| Confidence Engine | Estimate prediction confidence. |
+| Safety Filter | Decide whether DIY repair is safe. |
+| Guide Generator | Generate repair steps, tools, and cost estimates. |
+
+---
+
+## Interactive Repair Experience
+
+Instead of showing generic repair videos, FixLens generates an interactive repair experience tailored to the detected damage.
+
+### Experience Includes
+
+- AI-highlighted damaged area.
+- Animated repair overlays.
+- Step-by-step repair animation.
+- Tool placement guidance.
+- English and Tamil voice narration.
+- Progress tracking.
+- Completion checklist.
+
+---
+
+## Phone-to-Laptop Continuity
+
+Users can seamlessly switch between devices without losing repair progress.
+
+| Phone Experience | Desktop Dashboard |
+|------------------|-------------------|
+| Scan damaged object | Review repair history |
+| Follow repair steps | Manage saved guides |
+| Capture before/after proof | Technician dashboard |
+| Voice-guided repair | Escalation management |
+| Offline local mode | Analytics and activity logs |
+
+The same REST APIs synchronize both interfaces.
+
+---
+
+## Technical Architecture
+
+### Layered System Design
+
+| Layer | Responsibility | Current Implementation |
+|-------|----------------|------------------------|
+| Presentation | Landing page, authentication, dashboard, repair wizard, guides, history, settings, technicians. | Next.js App Router with React Client Components |
+| Transport | API routing, request parsing, authentication checks, response formatting. | `src/app/api/**/route.ts`, `src/lib/api-utils.ts` |
+| Validation | Request and domain validation. | Zod schemas in `src/lib/validation.ts` |
+| Domain | Repair templates, categories, tools, costs, narration, safety rules. | `src/lib/repairKnowledge.ts` |
+| AI Orchestration | Cloud vision with deterministic local fallback. | `src/lib/aiVision.ts` |
+| Persistence | Users, repairs, technicians, guides, sessions, activity logs. | Drizzle ORM with PostgreSQL / PGlite |
+| Media | Image uploads, repair videos, English/Tamil audio assets. | Upload API, Canvas Video Generator, `public/audio/` |
+| Security | Cookie sessions, password hashing, protected routes, middleware. | `src/lib/auth.ts`, `src/middleware.ts`, `.env` |
+
+---
+
+## Data Persistence Model
+
+### Primary Entities
+
+| Entity | Purpose |
+|--------|---------|
+| Users | Authentication and user profiles. |
+| Sessions | Secure login sessions. |
+| Repairs | Repair requests and AI results. |
+| Repair Guides | Generated repair instructions. |
+| Repair History | Before/after proof and timestamps. |
+| Technicians | Technician assignment records. |
+| Escalations | Unsafe repair cases requiring professional help. |
+| Activity Logs | Complete repair timeline and audit trail. |
+
+---
+
+## API Surface
+
+| Endpoint | Purpose |
+|----------|---------|
+| `POST /api/ai/detect` | AI damage detection from uploaded images. |
+| `POST /api/upload` | Upload before/after repair images. |
+| `GET /api/repairs` | Retrieve repair history. |
+| `POST /api/repairs` | Create a repair request. |
+| `POST /api/escalate` | Escalate unsafe repair cases. |
+| `GET /api/guides` | Fetch generated repair guides. |
+| `POST /api/auth/login` | User authentication. |
+| `POST /api/auth/register` | User registration. |
+
+---
+
+## Current Implementation Status
+
+| Capability | Repository Status |
+|------------|-------------------|
+| Responsive Web Product | Implemented |
+| Authentication & Sessions | Implemented |
+| Camera Upload Flow | Implemented |
+| AI Detection API | Implemented |
+| Safety Decision Engine | Implemented |
+| Guided Repair Templates | Implemented |
+| Repair History | Implemented |
+| English & Tamil Voice Guidance | Implemented |
+| Repair Video Generation Pipeline | Implemented |
+| Technician Escalation Workflow | Implemented |
+| Phone-to-Desktop Continuity | Implemented |
+| Activity Log Dashboard | Implemented |
+
+---
+
+## Why FixLens
+
+FixLens is designed as a practical AI-powered repair assistant for smartphones.
+
+- Phone-first repair experience built for iQOO devices.
+- Personalized repair guidance instead of generic tutorials.
+- Deterministic safety engine that blocks unsafe DIY repairs.
+- Bilingual English and Tamil voice guidance.
+- Repair proof and history for every completed repair.
+- Lightweight MVP architecture that scales to additional repair categories.
+
+---
+
+## Vision
+
+> **FixLens is like having a technician in your pocket — safer, smarter, and instant.**
+
+It identifies damage, evaluates safety, generates visual repair guidance, and records the completed repair — all from an iQOO smartphone.
 ## End-to-End Workflow
 
 ```mermaid
