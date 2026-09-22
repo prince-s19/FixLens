@@ -43,63 +43,29 @@ FixLens is deliberately narrow enough to be safe and polished: it starts with co
 The product boundary is intentional: the web MVP proves the product and safety workflow today, while the iQOO NPU plan shows how the same stable detection contract becomes an offline, private device experience.
 
 ## Product Overview
-
-### The problem
-
-- People pay technician fees for small, fixable household problems.
-- Generic repair videos do not match the exact object or damage.
-- Beginners cannot reliably tell whether a repair is safe to attempt.
-
-### The solution
-
-1. **Scan** - Capture or upload a photo of the damaged object.
-2. **Detect** - Identify the object and estimate the damaged region.
-3. **Guide** - Present a short, interactive repair guide with tools, materials, steps, animations, and optional narration.
-4. **Safety gate** - Block electrical, gas, vehicle-brake, structural, medical, and hazardous-plumbing repairs.
-5. **Proof** - Capture an after photo and retain a repair history entry.
-
-### MVP scope
-
-The current repair knowledge engine permits five low-risk categories:
-
-- Loose furniture screws
-- Cabinet hinges
-- Drawer handles and knobs
-- Torn bags and backpacks
-- Basic bicycle-chain issues
-
-The safety engine hard-blocks electrical, gas, vehicle-brake, structural, medical, and high-pressure plumbing scenarios and supports technician escalation.
-
-## Why FixLens Wins
-
-- **Phone-first:** Designed around camera input, local inference, visual overlays, and local persistence.
-- **Specific:** Generates a repair path for the photographed object instead of linking to a generic video.
-- **Safe by design:** Refuses dangerous jobs instead of optimizing for completion at any cost.
-- **Visually demonstrable:** The core story is raw damage -> highlighted locus -> guided steps -> verified result.
-- **Inclusive:** English and Tamil repair narration are represented in the domain model and UI.
-- **Practical:** Focuses the first release on common furniture and household repairs that can be completed with ordinary tools.
-
-## Current Architecture
-
-The current implementation is a Next.js full-stack application. The browser UI, API routes, authentication, AI orchestration, repair knowledge, and persistence live in one deployable project.
-
-```mermaid
-flowchart LR
-		User[User / browser] --> UI[Next.js App Router UI]
-		UI --> Auth[Session auth middleware]
-		UI --> API[Next.js route handlers]
-		API --> Validation[Zod validation + API utilities]
-		API --> Domain[Repair knowledge and safety engine]
-		API --> Vision[AI vision adapter]
-		API --> Storage[Upload and generated media storage]
-		API --> DB[(Drizzle data layer)]
-		DB --> PGlite[(PGlite local database)]
-		DB --> Postgres[(PostgreSQL deployment)]
-		Vision --> Edge[Local edge fallback: pixel variance + keyword rules]
-		Vision --> Gemini[Optional Gemini 1.5 Flash vision API]
-		API --> TTS[Optional English/Tamil TTS route]
-		API --> Video[Canvas-based repair video generator]
-		API --> Escalation[Technician escalation workflow]
+flowchart TD
+    Users[Users] --> Sessions[Sessions]
+    Users --> Repairs[Repair requests]
+    Users --> Guides[Saved repair guides]
+    Users --> Technicians[Technicians]
+    Users --> Escalations[Safety escalations]
+    Users --> Activity[Activity log]
+    Repairs --> Guides
+    Repairs --> Escalations
+    Technicians --> Escalations
+    Repairs --> Activity
+    Repairs --> RepairData[Category, damage box, steps, safety, status]
+    Guides --> GuideData[Tools, materials, notes, bookmarks]
+    Escalations --> EscalationData[Reason, urgency, technician, status]
+	API --> Storage[Upload and generated media storage]
+	API --> DB[Drizzle data layer]
+	DB --> PGlite[PGlite local database]
+	DB --> Postgres[PostgreSQL deployment]
+	Vision --> Edge[Local edge fallback: pixel variance and keyword rules]
+	Vision --> Gemini[Optional Gemini 1.5 Flash vision API]
+	API --> TTS[Optional English/Tamil TTS route]
+	API --> Video[Canvas-based repair video generator]
+	API --> Escalation[Technician escalation workflow]
 ```
 
 ### Architectural layers
@@ -123,54 +89,20 @@ flowchart TD
 		Login -- No --> Register[Register or log in]
 		Login -- Yes --> Capture[Capture or upload before photo]
 		Register --> Capture
-		Capture --> Notes[Add object or damage notes]
-		Notes --> Detect[POST /api/ai/detect]
-		Detect --> Hazard{Danger detected?}
-		Hazard -- Yes --> Lock[Hard safety lock]
-		Lock --> Escalate[Create escalation]
-		Escalate --> Tech[Select or dispatch technician]
-		Hazard -- No --> Classify[Classify one approved MVP category]
-		Classify --> Guide[Build repair steps, tools, costs, and safety notes]
-		Guide --> Video[Generate optional visual repair video]
-		Video --> TTS[Generate English or Tamil narration]
-		TTS --> Execute[User follows guided repair]
-		Execute --> After[Capture after photo]
-		After --> Complete[Complete repair and write activity log]
-		Complete --> History[Repair history and saved guide]
-```
-
-### Domain state transitions
-
-```mermaid
-stateDiagram-v2
-		[*] --> analyzing
-		analyzing --> ready: safe analysis complete
-		analyzing --> escalated: hazard detected
-		ready --> in_progress: user starts guide
-		in_progress --> completed: after photo and confirmation
-		in_progress --> escalated: unsafe condition discovered
-		escalated --> completed: technician resolves issue
-		completed --> [*]
-```
-
-## AI and Safety Model
-
-### Current inference strategy
-
-The `detectObjectAndDamage` entry point uses a layered strategy:
-
-1. If `GEMINI_API_KEY` is configured, the server sends the image and user notes to Gemini 1.5 Flash for multimodal classification and a normalized damage box.
-2. If Gemini is unavailable, FixLens uses the local fallback. It samples image-buffer variance to estimate a damage region and combines that signal with deterministic keyword classification.
-3. The result is merged with the controlled templates in `repairKnowledge.ts`.
-4. Dangerous keywords and categories take precedence over the low-risk repair path.
-
-The local fallback is useful for demos and offline-friendly development, but it is not yet a production-grade neural model or a true iQOO NPU implementation.
-
-### Safety principles
-
-- Safety classification is a gate, not a suggestion.
-- An unsafe category cannot receive a normal DIY guide.
-- Hazard categories include electrical, gas, vehicle brakes, structural damage, medical equipment, and hazardous plumbing.
+		flowchart TD
+		    Users[Users] --> Sessions[Sessions]
+		    Users --> Repairs[Repair requests]
+		    Users --> Guides[Saved repair guides]
+		    Users --> Technicians[Technicians]
+		    Users --> Escalations[Safety escalations]
+		    Users --> Activity[Activity log]
+		    Repairs --> Guides
+		    Repairs --> Escalations
+		    Technicians --> Escalations
+		    Repairs --> Activity
+		    Repairs --> RepairData[Category, damage box, steps, safety, status]
+		    Guides --> GuideData[Tools, materials, notes, bookmarks]
+		    Escalations --> EscalationData[Reason, urgency, technician, status]
 - Every permitted template carries difficulty, severity, safety level, safety notes, required tools, materials, estimated time, and repair steps.
 - The system can escalate to a technician with urgency, reason, status, and optional technician assignment.
 
@@ -349,54 +281,20 @@ All application data routes use the authenticated session cookie unless noted ot
 The Drizzle schema models the complete repair lifecycle:
 
 ```mermaid
-erDiagram
-		USERS ||--o{ SESSIONS : owns
-		USERS ||--o{ REPAIR_REQUESTS : creates
-		USERS ||--o{ SAVED_REPAIR_GUIDES : saves
-		USERS ||--o{ TECHNICIANS : manages
-		USERS ||--o{ ESCALATIONS : raises
-		USERS ||--o{ ACTIVITY_LOG : generates
-		REPAIR_REQUESTS ||--o{ SAVED_REPAIR_GUIDES : references
-		REPAIR_REQUESTS ||--o{ ESCALATIONS : triggers
-		TECHNICIANS ||--o{ ESCALATIONS : receives
-		REPAIR_REQUESTS ||--o{ ACTIVITY_LOG : records
-
-		USERS {
-			string id PK
-			string email UK
-			string preferred_language
-		}
-		REPAIR_REQUESTS {
-			string id PK
-			string category
-			jsonb damage_box
-			jsonb steps
-			boolean is_diy_safe
-			string status
-		}
-		SAVED_REPAIR_GUIDES {
-			string id PK
-			string title
-			jsonb steps
-			boolean is_bookmarked
-		}
-		TECHNICIANS {
-			string id PK
-			string specialty
-			string city
-			boolean available
-		}
-		ESCALATIONS {
-			string id PK
-			string urgency
-			string status
-			string reason
-		}
-		ACTIVITY_LOG {
-			string id PK
-			string action
-			timestamp created_at
-		}
+flowchart TD
+    Users[Users] --> Sessions[Sessions]
+    Users --> Repairs[Repair requests]
+    Users --> Guides[Saved repair guides]
+    Users --> Technicians[Technicians]
+    Users --> Escalations[Safety escalations]
+    Users --> Activity[Activity log]
+    Repairs --> Guides
+    Repairs --> Escalations
+    Technicians --> Escalations
+    Repairs --> Activity
+    Repairs --> RepairData[Category, damage box, steps, safety, status]
+    Guides --> GuideData[Tools, materials, notes, bookmarks]
+    Escalations --> EscalationData[Reason, urgency, technician, status]
 ```
 
 Repair status values are `analyzing`, `ready`, `in_progress`, `completed`, and `escalated`. Escalation status values are `pending`, `accepted`, `in_progress`, `resolved`, and `cancelled`.
