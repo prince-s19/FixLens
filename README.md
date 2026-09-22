@@ -296,54 +296,151 @@ FixLens is designed as a practical AI-powered repair assistant for smartphones.
 
 ---
 
-## Vision
-
-> **FixLens is like having a technician in your pocket — safer, smarter, and instant.**
-
-It identifies damage, evaluates safety, generates visual repair guidance, and records the completed repair — all from an iQOO smartphone.
 ## End-to-End Workflow
+
+The FixLens repair journey follows a safety-first workflow from image capture to repair completion and history logging.
 
 ```mermaid
 flowchart TD
-		Start([User opens FixLens]) --> Login{Authenticated?}
-		Login -- No --> Register[Register or log in]
-		Login -- Yes --> Capture[Capture or upload before photo]
-		Register --> Capture
-		flowchart TD
-		    Users[Users] --> Sessions[Sessions]
-		    Users --> Repairs[Repair requests]
-		    Users --> Guides[Saved repair guides]
-		    Users --> Technicians[Technicians]
-		    Users --> Escalations[Safety escalations]
-		    Users --> Activity[Activity log]
-		    Repairs --> Guides
-		    Repairs --> Escalations
-		    Technicians --> Escalations
-		    Repairs --> Activity
-		    Repairs --> RepairData[Category, damage box, steps, safety, status]
-		    Guides --> GuideData[Tools, materials, notes, bookmarks]
-		    Escalations --> EscalationData[Reason, urgency, technician, status]
-- Every permitted template carries difficulty, severity, safety level, safety notes, required tools, materials, estimated time, and repair steps.
-- The system can escalate to a technician with urgency, reason, status, and optional technician assignment.
+    Start([User opens FixLens]) --> Login{Authenticated?}
 
-### Model contract
+    Login -- No --> Register[Register or Log In]
+    Login -- Yes --> Capture[Capture or Upload Before Photo]
 
-The vision adapter normalizes detection into:
+    Register --> Capture
+
+    Capture --> Notes[Add Object / Damage Notes]
+    Notes --> Detect[AI Damage Detection]
+
+    Detect --> Safety{Danger Detected?}
+
+    Safety -- Yes --> Lock[Safety Lock]
+    Lock --> Escalate[Create Technician Escalation]
+    Escalate --> Technician[Assign / Select Technician]
+
+    Safety -- No --> Classify[Classify Furniture Category]
+    Classify --> Guide[Generate Repair Guide]
+    Guide --> Video[Generate Repair Animation]
+    Video --> Voice[English / Tamil Voice Guidance]
+
+    Voice --> Repair[Perform Repair]
+    Repair --> After[Capture After Photo]
+    After --> Complete[Complete Repair]
+    Complete --> History[Repair History & Activity Log]
+```
+
+---
+
+## Data Model Relationships
+
+The persistence layer connects users, repairs, guides, technicians, and safety escalations through a structured relational model.
+
+```mermaid
+flowchart LR
+    Users[Users]
+
+    Users --> Sessions[Sessions]
+    Users --> Repairs[Repair Requests]
+    Users --> Guides[Saved Repair Guides]
+    Users --> Activity[Activity Log]
+
+    Repairs --> RepairData[Repair Metadata]
+    Repairs --> Escalations[Safety Escalations]
+    Repairs --> Activity
+
+    Guides --> GuideData[Guide Metadata]
+
+    Technicians[Technicians] --> Escalations
+    Escalations --> EscalationData[Escalation Metadata]
+```
+
+### Repair Metadata
+
+Each repair request stores:
+
+- Furniture category
+- Damage summary
+- Damage bounding box coordinates
+- AI confidence score
+- Safety level
+- Repair status
+- Generated repair steps
+
+### Guide Metadata
+
+Each repair guide contains:
+
+- Required tools
+- Required materials
+- Estimated repair time
+- Safety notes
+- Step-by-step instructions
+- Saved bookmarks
+
+### Escalation Metadata
+
+When DIY repair is unsafe, FixLens stores:
+
+- Escalation reason
+- Urgency level
+- Technician assignment
+- Current status
+- Timestamp and activity history
+
+---
+
+## Safety Rules
+
+Every permitted repair template includes a complete safety specification before guidance is generated.
+
+| Field | Description |
+|-------|-------------|
+| Difficulty | Beginner, Intermediate, Advanced |
+| Severity | Damage severity score |
+| Safety Level | Low, Medium, High, Critical |
+| Safety Notes | Precautions before starting repair |
+| Required Tools | Tools needed for the repair |
+| Materials | Parts or materials required |
+| Estimated Time | Expected completion time |
+| Repair Steps | Guided repair workflow |
+
+If a repair exceeds the safe DIY threshold, FixLens automatically creates a technician escalation with urgency, reason, status, and optional technician assignment.
+
+---
+
+## Vision Model Contract
+
+The AI Vision adapter normalizes every detection into a consistent contract. This abstraction allows different vision models to be swapped without changing the repair workflow.
 
 ```ts
-{
+interface VisionDetection {
   category: string;
   objectLabel: string;
   damageSummary: string;
-  damageBox: { x: number; y: number; w: number; h: number };
+
+  damageBox: {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  };
+
   confidenceScore: number;
+
   isDangerous: boolean;
   dangerCategory: string | null;
+
   isDiySafe: boolean;
 }
 ```
 
-Keeping this contract stable allows Gemini, an on-device model, or a future NPU delegate to be swapped without rewriting the repair workflow.
+### Why This Contract Matters
+
+- Standardizes AI detection output across providers.
+- Supports Gemini, on-device ML models, or future NPU inference.
+- Keeps repair generation independent of the underlying vision model.
+- Ensures consistent safety evaluation and repair guide generation.
+- Makes the AI layer modular and production-ready.
 
 ## iQOO NPU and On-Device AI Roadmap
 
