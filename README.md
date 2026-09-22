@@ -12,6 +12,10 @@ This repository contains the current web MVP and its server-side API. The iQOO c
 
 **FixLens turns an iQOO phone into a visual AI repair assistant: point the camera at a damaged object, see the damage highlighted, and receive a safe, localized repair guide instead of a generic video.**
 
+<img width="1774" height="887" alt="fixlens-iqoo-template-1mb" src="https://github.com/user-attachments/assets/c9f5fb55-0810-491e-8175-3ea59af5dc5b" />
+
+
+
 ### Why it matters
 
 FixLens is deliberately narrow enough to be safe and polished: it starts with common furniture and household repairs, demonstrates the complete journey from raw damage to guided action, and refuses dangerous work. The project is not just an AI chatbot describing repairs. It connects camera input, visual detection, structured repair knowledge, animated video generation, English/Tamil guidance, a safety hard-lock, technician escalation, and a persistent repair record.
