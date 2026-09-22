@@ -1,0 +1,22 @@
+# Dependencies and build output
+node_modules/
+.next/
+out/
+dist/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Local databases and generated build metadata
+.fixlens-db/
+*.tsbuildinfo
+
+# Generated media and uploads
+public/uploads/
+
+# Logs and local tooling
+*.log
+.DS_Store
+Thumbs.db
