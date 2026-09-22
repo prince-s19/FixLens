@@ -281,20 +281,54 @@ All application data routes use the authenticated session cookie unless noted ot
 The Drizzle schema models the complete repair lifecycle:
 
 ```mermaid
-flowchart TD
-    Users[Users] --> Sessions[Sessions]
-    Users --> Repairs[Repair requests]
-    Users --> Guides[Saved repair guides]
-    Users --> Technicians[Technicians]
-    Users --> Escalations[Safety escalations]
-    Users --> Activity[Activity log]
-    Repairs --> Guides
-    Repairs --> Escalations
-    Technicians --> Escalations
-    Repairs --> Activity
-    Repairs --> RepairData[Category, damage box, steps, safety, status]
-    Guides --> GuideData[Tools, materials, notes, bookmarks]
-    Escalations --> EscalationData[Reason, urgency, technician, status]
+erDiagram
+	USERS ||--o{ SESSIONS : owns
+	USERS ||--o{ REPAIR_REQUESTS : creates
+	USERS ||--o{ SAVED_REPAIR_GUIDES : saves
+	USERS ||--o{ TECHNICIANS : manages
+	USERS ||--o{ ESCALATIONS : raises
+	USERS ||--o{ ACTIVITY_LOG : generates
+	REPAIR_REQUESTS ||--o{ SAVED_REPAIR_GUIDES : references
+	REPAIR_REQUESTS ||--o{ ESCALATIONS : triggers
+	TECHNICIANS ||--o{ ESCALATIONS : receives
+	REPAIR_REQUESTS ||--o{ ACTIVITY_LOG : records
+
+	USERS {
+		string id PK
+		string email UK
+		string preferred_language
+	}
+	REPAIR_REQUESTS {
+		string id PK
+		string category
+		jsonb damage_box
+		jsonb steps
+		boolean is_diy_safe
+		string status
+	}
+	SAVED_REPAIR_GUIDES {
+		string id PK
+		string title
+		jsonb steps
+		boolean is_bookmarked
+	}
+	TECHNICIANS {
+		string id PK
+		string specialty
+		string city
+		boolean available
+	}
+	ESCALATIONS {
+		string id PK
+		string urgency
+		string status
+		string reason
+	}
+	ACTIVITY_LOG {
+		string id PK
+		string action
+		timestamp created_at
+	}
 ```
 
 Repair status values are `analyzing`, `ready`, `in_progress`, `completed`, and `escalated`. Escalation status values are `pending`, `accepted`, `in_progress`, `resolved`, and `cancelled`.
