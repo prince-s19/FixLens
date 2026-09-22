@@ -234,6 +234,38 @@ flowchart LR
 - Cache approved repair templates on-device so the guide still works with no network.
 - Treat images as private by default. Cloud fallback should be opt-in, explicit, and visibly indicated.
 
+### Fully Offline Processing Plan
+
+The long-term iQOO experience is designed to complete the core scan-to-guide loop without sending an image or repair notes to a server. Network access becomes an optional enhancement for synchronization, model updates, and professional dispatch rather than a runtime dependency.
+
+```mermaid
+flowchart TD
+	Capture[Camera capture] --> LocalPreprocess[Local resize, crop, blur, normalize]
+	LocalPreprocess --> LocalDetect[On-device object and damage model]
+	LocalDetect --> LocalRules[Local hazard rules and safety classifier]
+	LocalRules -- Unsafe or unknown --> LocalBlock[Offline hard lock and safety message]
+	LocalRules -- Approved and safe --> LocalGuide[Cached repair template and step planner]
+	LocalGuide --> LocalOverlay[AR overlay and animation]
+	LocalGuide --> LocalVoice[Offline Tamil or English TTS]
+	LocalOverlay --> LocalStore[Encrypted local repair record]
+	LocalVoice --> LocalStore
+	LocalStore --> Queue[Encrypted sync queue]
+	Queue -. Network available .-> Sync[Authenticated background sync]
+```
+
+Offline mode will include:
+
+- **On-device image processing:** Resize and inspect frames locally before inference. Original photos remain on the phone unless the user explicitly enables cloud assistance.
+- **NPU-accelerated detection:** Run a quantized object and damage detector through the Qualcomm AI Engine, Android NNAPI, or a validated TFLite/ONNX delegate.
+- **Local safety first:** Run hazard keyword rules and a small safety classifier on the device. An unsafe or uncertain result fails closed and never falls through to a DIY instruction.
+- **Cached repair knowledge:** Ship signed, versioned templates for approved categories, including tools, materials, steps, timing, safety notes, and Tamil/English text.
+- **Offline voice guidance:** Use downloadable on-device Android TTS voices or bundled audio for both supported languages; do not require a cloud voice request during a repair.
+- **Encrypted local history:** Store before/after references, detection metadata, completion status, and user notes in encrypted SQLite/Room or an encrypted Flutter database.
+- **Deferred synchronization:** Queue only the records the user has consented to sync. Upload occurs later with retries, conflict handling, model-version metadata, and signed requests.
+- **Graceful degradation:** If NPU inference is unavailable, use the CPU/GPU delegate with a visible lower-performance state. If confidence is insufficient, show `needs review` or escalate rather than inventing a diagnosis.
+
+Offline acceptance tests will cover airplane-mode startup, image privacy, safe-category completion, dangerous-category blocking, Tamil/English playback, interrupted sync, duplicate sync prevention, battery/thermal limits, and model rollback.
+
 ## Tech Stack
 
 ### Current repository
@@ -329,12 +361,42 @@ erDiagram
 		TECHNICIANS ||--o{ ESCALATIONS : receives
 		REPAIR_REQUESTS ||--o{ ACTIVITY_LOG : records
 
-		USERS { string id PK; string email UK; string preferred_language }
-		REPAIR_REQUESTS { string id PK; string category; jsonb damage_box; jsonb steps; boolean is_diy_safe; string status }
-		SAVED_REPAIR_GUIDES { string id PK; string title; jsonb steps; boolean is_bookmarked }
-		TECHNICIANS { string id PK; string specialty; string city; boolean available }
-		ESCALATIONS { string id PK; string urgency; string status; string reason }
-		ACTIVITY_LOG { string id PK; string action; timestamp created_at }
+		USERS {
+			string id PK
+			string email UK
+			string preferred_language
+		}
+		REPAIR_REQUESTS {
+			string id PK
+			string category
+			jsonb damage_box
+			jsonb steps
+			boolean is_diy_safe
+			string status
+		}
+		SAVED_REPAIR_GUIDES {
+			string id PK
+			string title
+			jsonb steps
+			boolean is_bookmarked
+		}
+		TECHNICIANS {
+			string id PK
+			string specialty
+			string city
+			boolean available
+		}
+		ESCALATIONS {
+			string id PK
+			string urgency
+			string status
+			string reason
+		}
+		ACTIVITY_LOG {
+			string id PK
+			string action
+			timestamp created_at
+		}
 ```
 
 Repair status values are `analyzing`, `ready`, `in_progress`, `completed`, and `escalated`. Escalation status values are `pending`, `accepted`, `in_progress`, `resolved`, and `cancelled`.
