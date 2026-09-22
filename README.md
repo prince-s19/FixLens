@@ -6,27 +6,26 @@ FixLens is a visual AI repair assistant designed for iQOO phones. A user photogr
 
 This repository contains the current web MVP and its server-side API. The iQOO camera client, AR layer, ML Kit integration, and NPU-optimized model are part of the forward roadmap described below; they are not claimed to be fully implemented in this repository yet.
 
-## Judge-Facing Submission Summary
+## Product Brief
 
 ### The one-line pitch
 
 **FixLens turns an iQOO phone into a visual AI repair assistant: point the camera at a damaged object, see the damage highlighted, and receive a safe, localized repair guide instead of a generic video.**
 
-### Why this can win
+### Why it matters
 
 FixLens is deliberately narrow enough to be safe and polished: it starts with common furniture and household repairs, demonstrates the complete journey from raw damage to guided action, and refuses dangerous work. The project is not just an AI chatbot describing repairs. It connects camera input, visual detection, structured repair knowledge, animated video generation, English/Tamil guidance, a safety hard-lock, technician escalation, and a persistent repair record.
 
-### Scoring criteria alignment
+### Product capabilities and evidence
 
-| Rubric dimension | Weight | FixLens evidence | What the jury should see |
+| Product area | Focus | FixLens evidence | Product experience |
 | --- | ---: | --- | --- |
-| End product quality | 30% | Complete scan -> detect -> guide -> proof flow; focused furniture MVP; safety states; history and saved guides | A usable product, not a concept screen: capture an object, inspect the result, follow steps, and save the outcome |
-| Novelty and impact | 20% | Turns a phone camera into a repair-specific visual assistant; replaces generic videos with object-specific guidance; refuses unsafe jobs | The contrast between a generic repair search and a personalized visual guide, plus the cost and access benefit for households |
-| HackTracker: creative phone use | 15% | Camera/photo capture, on-device/edge fallback contract, English/Tamil voice assets, visual damage box, generated repair video | A phone-centered scan, highlighted damage, localized narration, and a repair animation shown in one continuous story |
-| Technical depth | 15% | Layered AI fallback, typed domain model, deterministic safety gate, Drizzle schema, PGlite/Postgres, sessions, media pipeline, API surface | Architecture, state transitions, safety failure behavior, and a live end-to-end request rather than a static mock |
-| HackTracker: Office Kit usage | 10% | Responsive browser dashboard, shared REST route handlers, phone upload to laptop dashboard, local/PGlite mode, laptop-friendly repair history | The phone creates the repair request while the laptop dashboard reviews, manages, escalates, and records it through the same API |
-| Demo and presentation | 10% | A prepared 3-5 minute narrative, named demo object, visible safety interruption, before/after proof, and concise close | A judge can understand the problem, watch the product work, and remember the safety-first differentiator |
-| **Total** | **100%** |  |  |
+| End-to-end product | Scan -> detect -> guide -> proof flow; focused furniture MVP; safety states; history and saved guides | A user captures an object, inspects the result, follows steps, and saves the outcome |
+| Real-world impact | Phone camera becomes a repair-specific assistant instead of another generic search result | A household gets specific guidance while unsafe work is refused |
+| Phone experience | Camera/photo capture, local edge contract, English/Tamil voice assets, damage box, generated repair video | The scan, diagnosis, localized narration, and repair animation form one continuous phone flow |
+| Engineering depth | Layered AI fallback, typed domain model, deterministic safety gate, Drizzle schema, PGlite/Postgres, sessions, media pipeline, API surface | The product has explicit states, persistence, failure behavior, and a working full-stack path |
+| Phone-to-laptop continuity | Responsive dashboard, shared REST handlers, phone upload, local mode, repair history | The phone starts the repair request while the laptop dashboard reviews, manages, escalates, and records it through the same API |
+| Product walkthrough | Named demo object, visible safety interruption, before/after proof, and a concise narrative | The workflow can be understood quickly without relying on abstract claims |
 
 ### Claims and implementation status
 
@@ -41,7 +40,7 @@ FixLens is deliberately narrow enough to be safe and polished: it starts with co
 | Local heuristic edge fallback | Implemented for development/demo fallback |
 | Native iQOO app, ML Kit, AR overlays, and Qualcomm NPU delegate | Roadmap; described as planned, not complete |
 
-The strongest presentation is honest about this boundary: the web MVP proves the product and safety workflow today, while the iQOO NPU plan shows how the same stable detection contract becomes an offline, private device experience.
+The product boundary is intentional: the web MVP proves the product and safety workflow today, while the iQOO NPU plan shows how the same stable detection contract becomes an offline, private device experience.
 
 ## Product Overview
 
@@ -472,7 +471,7 @@ npm run typecheck  # Run TypeScript without emitting files
 - FixLens does not replace qualified professionals for dangerous, regulated, structural, medical, gas, electrical, or vehicle-brake work.
 - A high confidence score is not permission to bypass the safety gate.
 
-## Recommended 3-5 Minute Jury Demo
+## Recommended 3-5 Minute Product Walkthrough
 
 Use one named object throughout the presentation: a **wobbly cabinet door with a loose hinge**. Keep the browser dashboard open on the laptop and use a phone-sized browser viewport or a real phone on the same local network to demonstrate the bridge.
 
@@ -492,7 +491,7 @@ Show the detected object, orange damage box, severity, confidence, required tool
 
 Run a second example with a dangerous note such as `sparking electrical socket`. Show the hard lock and technician escalation. Make the key point explicit: **FixLens is designed to refuse a dangerous repair, not hallucinate instructions for it.**
 
-### 2:55-3:40 - Office Kit bridge and proof
+### 2:55-3:40 - Phone-to-laptop continuity and proof
 
 On the laptop dashboard, open repair history, inspect the request created from the phone flow, update the guide or notes, and open the escalation/technician view. Return to the repair and attach an after photo so the before/after log is complete.
 
